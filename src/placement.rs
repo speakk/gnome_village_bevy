@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
-use crate::map::LayerBuilding;
+use crate::{components::Blueprint, map::LayerBuilding};
 
 #[derive(Resource)]
 pub struct CursorPos(Vec2);
@@ -73,9 +73,16 @@ pub fn placement(
                         .spawn(TileBundle {
                             position: tile_pos,
                             texture_index: TileTextureIndex(1),
+                            color: TileColor(Color::Rgba {
+                                red: 0.5,
+                                green: 0.5,
+                                blue: 1.0,
+                                alpha: 0.6,
+                            }),
                             tilemap_id: *tilemap_id,
                             ..Default::default()
                         })
+                        .insert(Blueprint)
                         .id();
 
                     tile_storage.set(&tile_pos, tile_entity);

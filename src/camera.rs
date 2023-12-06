@@ -6,7 +6,7 @@ struct MyCameraMarker;
 
 pub fn setup_camera(mut commands: Commands) {
     let mut camera_bundle = Camera2dBundle::default();
-    camera_bundle.projection.scale = 1.0 / 3.0;
+    camera_bundle.projection.scale = 1.0 / 2.0;
     commands.spawn((camera_bundle, MyCameraMarker));
 }
 

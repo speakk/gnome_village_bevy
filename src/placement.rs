@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
+use crate::map::LayerBuilding;
+
 #[derive(Resource)]
 pub struct CursorPos(Vec2);
 impl Default for CursorPos {
@@ -33,14 +35,17 @@ pub fn update_cursor_pos(
 pub fn placement(
     mut commands: Commands,
     cursor_pos: Res<CursorPos>,
-    mut tilemap_q: Query<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapType,
-        &TilemapId,
-        &mut TileStorage,
-        &Transform,
-    )>,
+    mut tilemap_q: Query<
+        (
+            &TilemapSize,
+            &TilemapGridSize,
+            &TilemapType,
+            &TilemapId,
+            &mut TileStorage,
+            &Transform,
+        ),
+        Has<LayerBuilding>,
+    >,
     mouse_button: Res<Input<MouseButton>>,
 ) {
     if mouse_button.pressed(MouseButton::Left) {
@@ -62,7 +67,7 @@ pub fn placement(
                 TilePos::from_world_pos(&cursor_in_map_pos, map_size, grid_size, map_type)
             {
                 // Highlight the relevant tile's label
-                if let Some(_old_tile_entity) = tile_storage.get(&tile_pos) {
+                if let Some(old_tile_entity) = tile_storage.get(&tile_pos) {
                     // SPEAK TODO: Use map layers
                     let tile_entity = commands
                         .spawn(TileBundle {
@@ -74,6 +79,8 @@ pub fn placement(
                         .id();
 
                     tile_storage.set(&tile_pos, tile_entity);
+
+                    commands.entity(old_tile_entity).despawn();
                     //commands.entity(tile_entity).insert(HighlightedLabel);
                 }
             }

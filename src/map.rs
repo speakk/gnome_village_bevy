@@ -49,18 +49,3 @@ pub fn tilemap_setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         .insert(TilemapId(tilemap_entity));
     println!("Spawned tilemap probably");
 }
-
-// fn add_tiles(mut commands: Commands, mut query: Query<&mut TileStorage, Added<TileStorage>>) {
-//     for mut tile_storage in &mut query {
-//         let pos = TilePos { x: 0, y: 0 };
-//         println!("Actually setting tile");
-//         let entity = commands
-//             .spawn(TileBundle {
-//                 position: pos,
-//                 ..Default::default()
-//             })
-//             .id();
-//
-//         tile_storage.set(&pos, entity)
-//     }
-// }

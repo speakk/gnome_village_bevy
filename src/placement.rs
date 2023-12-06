@@ -41,40 +41,41 @@ pub fn placement(
         &mut TileStorage,
         &Transform,
     )>,
+    mouse_button: Res<Input<MouseButton>>,
 ) {
-    for (map_size, grid_size, map_type, tilemap_id, mut tile_storage, map_transform) in
-        tilemap_q.iter_mut()
-    {
-        // Grab the cursor position from the `Res<CursorPos>`
-        let cursor_pos: Vec2 = cursor_pos.0;
-        // We need to make sure that the cursor's world position is correct relative to the map
-        // due to any map transformation.
-        let cursor_in_map_pos: Vec2 = {
-            // Extend the cursor_pos vec3 by 0.0 and 1.0
-            let cursor_pos = Vec4::from((cursor_pos, 0.0, 1.0));
-            let cursor_in_map_pos = map_transform.compute_matrix().inverse() * cursor_pos;
-            cursor_in_map_pos.xy()
-        };
-        // Once we have a world position we can transform it into a possible tile position.
-        if let Some(tile_pos) =
-            TilePos::from_world_pos(&cursor_in_map_pos, map_size, grid_size, map_type)
+    if mouse_button.pressed(MouseButton::Left) {
+        for (map_size, grid_size, map_type, tilemap_id, mut tile_storage, map_transform) in
+            tilemap_q.iter_mut()
         {
-            println!("Posit");
-            // Highlight the relevant tile's label
-            if let Some(_old_tile_entity) = tile_storage.get(&tile_pos) {
-                println!("Hovering over old");
-                // SPEAK TODO: Use map layers
-                let tile_entity = commands
-                    .spawn(TileBundle {
-                        position: tile_pos,
-                        texture_index: TileTextureIndex(1),
-                        tilemap_id: *tilemap_id,
-                        ..Default::default()
-                    })
-                    .id();
+            // Grab the cursor position from the `Res<CursorPos>`
+            let cursor_pos: Vec2 = cursor_pos.0;
+            // We need to make sure that the cursor's world position is correct relative to the map
+            // due to any map transformation.
+            let cursor_in_map_pos: Vec2 = {
+                // Extend the cursor_pos vec3 by 0.0 and 1.0
+                let cursor_pos = Vec4::from((cursor_pos, 0.0, 1.0));
+                let cursor_in_map_pos = map_transform.compute_matrix().inverse() * cursor_pos;
+                cursor_in_map_pos.xy()
+            };
+            // Once we have a world position we can transform it into a possible tile position.
+            if let Some(tile_pos) =
+                TilePos::from_world_pos(&cursor_in_map_pos, map_size, grid_size, map_type)
+            {
+                // Highlight the relevant tile's label
+                if let Some(_old_tile_entity) = tile_storage.get(&tile_pos) {
+                    // SPEAK TODO: Use map layers
+                    let tile_entity = commands
+                        .spawn(TileBundle {
+                            position: tile_pos,
+                            texture_index: TileTextureIndex(1),
+                            tilemap_id: *tilemap_id,
+                            ..Default::default()
+                        })
+                        .id();
 
-                tile_storage.set(&tile_pos, tile_entity);
-                //commands.entity(tile_entity).insert(HighlightedLabel);
+                    tile_storage.set(&tile_pos, tile_entity);
+                    //commands.entity(tile_entity).insert(HighlightedLabel);
+                }
             }
         }
     }

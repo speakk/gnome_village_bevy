@@ -3,6 +3,7 @@ mod camera;
 mod components;
 mod map;
 mod placement;
+mod systems;
 
 use crate::ai::Build;
 use crate::ai::BuildingNeedy;
@@ -22,6 +23,8 @@ use rand::Rng;
 
 use bevy_ecs_tilemap::prelude::*;
 use big_brain::prelude::*;
+use systems::blueprint::blueprint;
+use systems::blueprint::BlueprintFinished;
 //
 //         .add_plugins(DefaultPlugins.set(LogPlugin {
 //             // Use `RUST_LOG=big_brain=trace,thirst=trace cargo run --example thirst --features=trace` to see extra tracing output.
@@ -49,6 +52,8 @@ fn main() {
         .add_systems(Update, update_cursor_pos)
         .add_systems(Update, placement)
         .add_systems(Update, building_need_system)
+        .add_systems(Update, blueprint)
+        .add_event::<BlueprintFinished>()
         .add_systems(First, building_needy_scorer_system)
         .add_systems(
             PreUpdate,

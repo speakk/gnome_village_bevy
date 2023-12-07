@@ -7,6 +7,7 @@
 //! the MoveToWaterSource action will simply terminate immediately.
 
 use crate::components::{Blueprint, BuildingProcess, Settler};
+use crate::systems::blueprint::BlueprintFinished;
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
 use bevy_ecs_tilemap::map::TilemapId;
@@ -60,7 +61,7 @@ pub fn move_to_blueprint_action_system(
         match *action_state {
             // Action was just requested; it hasn't been seen before.
             ActionState::Requested => {
-                println!("Let's go find some water!");
+                //println!("Let's go find some water!");
                 // We don't really need any initialization code here, since the queries are cheap enough.
                 *action_state = ActionState::Executing;
             }
@@ -147,6 +148,8 @@ pub fn build_action_system(
     blueprint_query: Query<(&Transform, Entity), With<Blueprint>>,
     mut building_processes: Query<&mut BuildingProcess, With<Blueprint>>,
     mut query: Query<(&Actor, &mut ActionState, &Build, &ActionSpan)>,
+    mut blueprint_finished_event_writer: EventWriter<BlueprintFinished>,
+    tilemap_query: Query<(&Transform, &TilemapId), (Without<Blueprint>, Without<Settler>)>,
 ) {
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (Actor(actor), mut state, build, span) in &mut query {
@@ -176,13 +179,15 @@ pub fn build_action_system(
                     find_closest_blueprint(&blueprint_query, actor_position)
                 {
                     // Find how far we are from it.
-                    let distance = (closest_blueprint_transform.translation
+                    let (map_transform, _) = tilemap_query.iter().last().unwrap();
+                    let final_blueprint_transform = *map_transform * closest_blueprint_transform;
+                    let distance = (final_blueprint_transform.translation
                         - actor_position.translation)
                         .length();
 
                     // Are we close enough?
                     if distance < MAX_DISTANCE {
-                        trace!("Building!");
+                        println!("Building!");
 
                         // Start reducing the thirst. Alternatively, you could send out some kind of
                         // DrinkFromSource event that indirectly decreases thirst.
@@ -194,6 +199,8 @@ pub fn build_action_system(
                         building_process.process += build.per_second * time.delta_seconds();
                         if building_process.process >= 1.0 {
                             building_process.process = 1.0;
+                            blueprint_finished_event_writer
+                                .send(BlueprintFinished(closest_blueprint_entity));
                             *state = ActionState::Success;
                         }
                     } else {

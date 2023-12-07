@@ -49,7 +49,7 @@ pub fn tilemap_setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         tile_size,
         size: map_size,
         storage: tile_storage,
-        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0),
+        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.1),
         ..Default::default()
     };
 
@@ -80,7 +80,7 @@ pub fn tilemap_setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         tile_size,
         size: map_size,
         storage: tile_storage,
-        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0),
+        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.1),
         ..Default::default()
     };
 

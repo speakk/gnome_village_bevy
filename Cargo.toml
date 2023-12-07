@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.12.1", features = ["dynamic_linking"] }
 bevy_ecs_tilemap = { git = "https://github.com/divark/bevy_ecs_tilemap.git", branch = "0.12-fixes" }
+big-brain = { git = "https://github.com/zkat/big-brain", branch = "main" }
 rand = "0.8.5"
 
 # Enable a small amount of optimization in debug mode

@@ -6,7 +6,7 @@
 //! Note that it does not matter if the actor is already near a water source:
 //! the MoveToWaterSource action will simply terminate immediately.
 
-use crate::components::{Blueprint, Settler};
+use crate::components::{Blueprint, BuildingProcess, Settler};
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
 use big_brain::prelude::*;
@@ -58,7 +58,7 @@ pub fn move_to_blueprint_action_system(
         match *action_state {
             // Action was just requested; it hasn't been seen before.
             ActionState::Requested => {
-                debug!("Let's go find some water!");
+                println!("Let's go find some water!");
                 // We don't really need any initialization code here, since the queries are cheap enough.
                 *action_state = ActionState::Executing;
             }
@@ -66,7 +66,7 @@ pub fn move_to_blueprint_action_system(
                 // Look up the actor's position.
                 let mut actor_position = positions.get_mut(actor.0).expect("actor has no position");
 
-                trace!("Actor position: {:?}", actor_position.translation);
+                //println!("Actor position: {:?}", actor_position.translation);
 
                 // Look up the water source closest to them.
                 if let Some((closest_blueprint_transform, _)) =
@@ -78,7 +78,7 @@ pub fn move_to_blueprint_action_system(
 
                     let distance = delta.length();
 
-                    trace!("Distance: {}", distance);
+                    //println!("Distance: {}", distance);
 
                     if distance > MAX_DISTANCE {
                         // We're still too far, take a step toward it!
@@ -136,11 +136,6 @@ fn find_closest_blueprint(
 #[derive(Clone, Component, Debug, ActionBuilder)]
 pub struct Build {
     pub per_second: f32,
-}
-
-#[derive(Clone, Component, Debug)]
-pub struct BuildingProcess {
-    pub process: f32,
 }
 
 pub fn build_action_system(

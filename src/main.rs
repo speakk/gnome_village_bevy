@@ -74,7 +74,7 @@ fn misc_setup(
         let move_and_build = Steps::build()
             .label("MoveAndBuild")
             // ...move to the water source...
-            .step(MoveToBlueprint { speed: 1.0 })
+            .step(MoveToBlueprint { speed: 60.0 })
             // ...and then drink.
             .step(Build { per_second: 0.2 });
 
@@ -108,8 +108,8 @@ fn misc_setup(
 fn walkie(time: Res<Time>, mut sprite_position: Query<&mut Transform, With<Settler>>) {
     let mut rng = rand::thread_rng();
     for mut transform in &mut sprite_position {
-        transform.translation.x += rng.gen_range(-20.0..20.0) * time.delta_seconds();
-        transform.translation.y += rng.gen_range(-20.0..20.0) * time.delta_seconds();
+        transform.translation.x += rng.gen_range(-2.0..2.0) * time.delta_seconds();
+        transform.translation.y += rng.gen_range(-2.0..2.0) * time.delta_seconds();
     }
 }
 

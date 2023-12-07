@@ -6,5 +6,7 @@ pub struct Settler;
 #[derive(Component)]
 pub struct Blueprint;
 
-#[derive(Component)]
-pub struct BuildingProcess(f32);
+#[derive(Clone, Component, Debug)]
+pub struct BuildingProcess {
+    pub process: f32,
+}

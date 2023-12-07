@@ -9,6 +9,7 @@
 use crate::components::{Blueprint, BuildingProcess, Settler};
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
+use bevy_ecs_tilemap::map::TilemapId;
 use big_brain::prelude::*;
 
 #[derive(Component, Debug)]
@@ -49,6 +50,7 @@ pub fn move_to_blueprint_action_system(
     mut positions: Query<&mut Transform, (With<Settler>, Without<Blueprint>)>,
     // A query on all current MoveToWaterSource actions.
     mut action_query: Query<(&Actor, &mut ActionState, &MoveToBlueprint, &ActionSpan)>,
+    tilemap_query: Query<(&Transform, &TilemapId), (Without<Blueprint>, Without<Settler>)>,
 ) {
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (actor, mut action_state, move_to, span) in &mut action_query {
@@ -72,9 +74,10 @@ pub fn move_to_blueprint_action_system(
                 if let Some((closest_blueprint_transform, _)) =
                     find_closest_blueprint(&blueprints, &actor_position)
                 {
+                    let (map_transform, _) = tilemap_query.iter().last().unwrap();
+                    let final_blueprint_transform = *map_transform * closest_blueprint_transform;
                     // Find how far we are from it.
-                    let delta =
-                        closest_blueprint_transform.translation - actor_position.translation;
+                    let delta = final_blueprint_transform.translation - actor_position.translation;
 
                     let distance = delta.length();
 

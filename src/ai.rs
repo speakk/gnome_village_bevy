@@ -7,6 +7,7 @@
 //! the MoveToWaterSource action will simply terminate immediately.
 
 use crate::components::{Blueprint, BuildingProcess, Settler};
+use crate::map::LayerBuilding;
 use crate::systems::blueprint::BlueprintFinished;
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
@@ -51,8 +52,12 @@ pub fn move_to_blueprint_action_system(
     mut positions: Query<&mut Transform, (With<Settler>, Without<Blueprint>)>,
     // A query on all current MoveToWaterSource actions.
     mut action_query: Query<(&Actor, &mut ActionState, &MoveToBlueprint, &ActionSpan)>,
-    tilemap_query: Query<(&Transform, &TilemapId), (Without<Blueprint>, Without<Settler>)>,
+    tilemap_query: Query<
+        (&Transform, &TilemapId),
+        (Without<Blueprint>, Without<Settler>, With<LayerBuilding>),
+    >,
 ) {
+    println!("Blueprint length: {}", blueprints.iter().count());
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (actor, mut action_state, move_to, span) in &mut action_query {
         let _guard = span.span().enter();
@@ -75,6 +80,7 @@ pub fn move_to_blueprint_action_system(
                 if let Some((closest_blueprint_transform, _)) =
                     find_closest_blueprint(&blueprints, &actor_position)
                 {
+                    //println!("Still supposedly have some blueprint");
                     let (map_transform, _) = tilemap_query.iter().last().unwrap();
                     let final_blueprint_transform = *map_transform * closest_blueprint_transform;
                     // Find how far we are from it.
@@ -149,7 +155,10 @@ pub fn build_action_system(
     mut building_processes: Query<&mut BuildingProcess, With<Blueprint>>,
     mut query: Query<(&Actor, &mut ActionState, &Build, &ActionSpan)>,
     mut blueprint_finished_event_writer: EventWriter<BlueprintFinished>,
-    tilemap_query: Query<(&Transform, &TilemapId), (Without<Blueprint>, Without<Settler>)>,
+    tilemap_query: Query<
+        (&Transform, &TilemapId),
+        (Without<Blueprint>, Without<Settler>, With<LayerBuilding>),
+    >,
 ) {
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (Actor(actor), mut state, build, span) in &mut query {

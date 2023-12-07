@@ -47,7 +47,7 @@ pub fn placement(
             &mut TileStorage,
             &Transform,
         ),
-        Has<LayerBuilding>,
+        With<LayerBuilding>,
     >,
     mouse_button: Res<Input<MouseButton>>,
 ) {
@@ -92,7 +92,7 @@ pub fn placement(
 
                     tile_storage.set(&tile_pos, tile_entity);
 
-                    commands.entity(old_tile_entity).despawn();
+                    commands.entity(old_tile_entity).despawn_recursive();
                     //commands.entity(tile_entity).insert(HighlightedLabel);
                 }
             }

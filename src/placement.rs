@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use crate::{
     components::{Blueprint, BuildingProcess},
@@ -70,6 +71,7 @@ pub fn placement(
                 TilePos::from_world_pos(&cursor_in_map_pos, map_size, grid_size, map_type)
             {
                 let world_pos = tile_pos.center_in_world(grid_size, map_type);
+                let final_pos = Transform::from_xyz(world_pos.x, world_pos.y, 0.0) * *map_transform;
                 // Highlight the relevant tile's label
                 if let Some(old_tile_entity) = tile_storage.get(&tile_pos) {
                     commands.entity(old_tile_entity).despawn_recursive();
@@ -89,7 +91,12 @@ pub fn placement(
                     })
                     .insert(Blueprint)
                     .insert(BuildingProcess { process: 0.0 })
-                    .insert(Transform::from_xyz(world_pos.x, world_pos.y, 0.0))
+                    .insert(TransformBundle::from_transform(Transform::from_xyz(
+                        final_pos.translation.x,
+                        final_pos.translation.y,
+                        0.0,
+                    )))
+                    .insert(Collider::cuboid(4.0, 4.0))
                     .id();
 
                 tile_storage.set(&tile_pos, tile_entity);

@@ -56,10 +56,6 @@ pub fn move_to_blueprint_action_system(
     >,
     // A query on all current MoveToWaterSource actions.
     mut action_query: Query<(&Actor, &mut ActionState, &MoveToBlueprint, &ActionSpan)>,
-    tilemap_query: Query<
-        (&Transform, &TilemapId),
-        (Without<Blueprint>, Without<Settler>, With<LayerBuilding>),
-    >,
 ) {
     println!("Blueprint length: {}", blueprints.iter().count());
     // Loop through all actions, just like you'd loop over all entities in any other query.
@@ -76,7 +72,7 @@ pub fn move_to_blueprint_action_system(
             }
             ActionState::Executing => {
                 // Look up the actor's position.
-                let (mut actor_position, mut kinematic_controller) =
+                let (actor_position, mut kinematic_controller) =
                     positions.get_mut(actor.0).expect("actor has no position");
 
                 //println!("Actor position: {:?}", actor_position.translation);
@@ -85,9 +81,7 @@ pub fn move_to_blueprint_action_system(
                 if let Some((closest_blueprint_transform, _)) =
                     find_closest_blueprint(&blueprints, &actor_position)
                 {
-                    //println!("Still supposedly have some blueprint");
-                    let (map_transform, _) = tilemap_query.iter().last().unwrap();
-                    let final_blueprint_transform = *map_transform * closest_blueprint_transform;
+                    let final_blueprint_transform = closest_blueprint_transform;
                     // Find how far we are from it.
                     let delta = final_blueprint_transform.translation - actor_position.translation;
 

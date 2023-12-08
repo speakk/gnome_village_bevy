@@ -61,16 +61,16 @@ pub fn tilemap_setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         .insert(TilemapId(tilemap_entity));
 
     // Layer 2 (buildings)
-    let mut tile_storage = TileStorage::empty(map_size);
+    let tile_storage = TileStorage::empty(map_size);
     let tilemap_entity = commands.spawn_empty().id();
 
-    fill_tilemap(
-        TileTextureIndex(0),
-        map_size,
-        TilemapId(tilemap_entity),
-        &mut commands,
-        &mut tile_storage,
-    );
+    // fill_tilemap(
+    //     TileTextureIndex(0),
+    //     map_size,
+    //     TilemapId(tilemap_entity),
+    //     &mut commands,
+    //     &mut tile_storage,
+    // );
 
     // Set up tilemap
     let tilemap_bundle = TilemapBundle {
@@ -80,7 +80,7 @@ pub fn tilemap_setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         tile_size,
         size: map_size,
         storage: tile_storage,
-        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.1),
+        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.2),
         ..Default::default()
     };
 

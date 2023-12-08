@@ -72,29 +72,29 @@ pub fn placement(
                 let world_pos = tile_pos.center_in_world(grid_size, map_type);
                 // Highlight the relevant tile's label
                 if let Some(old_tile_entity) = tile_storage.get(&tile_pos) {
-                    let tile_entity = commands
-                        .spawn(TileBundle {
-                            position: tile_pos,
-                            texture_index: TileTextureIndex(1),
-                            color: TileColor(Color::Rgba {
-                                red: 0.5,
-                                green: 0.5,
-                                blue: 1.0,
-                                alpha: 0.6,
-                            }),
-                            tilemap_id: *tilemap_id,
-                            ..Default::default()
-                        })
-                        .insert(Blueprint)
-                        .insert(BuildingProcess { process: 0.0 })
-                        .insert(Transform::from_xyz(world_pos.x, world_pos.y, 0.0))
-                        .id();
-
-                    tile_storage.set(&tile_pos, tile_entity);
-
                     commands.entity(old_tile_entity).despawn_recursive();
-                    //commands.entity(tile_entity).insert(HighlightedLabel);
                 }
+                let tile_entity = commands
+                    .spawn(TileBundle {
+                        position: tile_pos,
+                        texture_index: TileTextureIndex(1),
+                        color: TileColor(Color::Rgba {
+                            red: 0.5,
+                            green: 0.5,
+                            blue: 1.0,
+                            alpha: 0.6,
+                        }),
+                        tilemap_id: *tilemap_id,
+                        ..Default::default()
+                    })
+                    .insert(Blueprint)
+                    .insert(BuildingProcess { process: 0.0 })
+                    .insert(Transform::from_xyz(world_pos.x, world_pos.y, 0.0))
+                    .id();
+
+                tile_storage.set(&tile_pos, tile_entity);
+
+                //commands.entity(tile_entity).insert(HighlightedLabel);
             }
         }
     }

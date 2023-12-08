@@ -12,6 +12,7 @@ use crate::systems::blueprint::BlueprintFinished;
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
 use bevy_ecs_tilemap::map::TilemapId;
+use bevy_rapier2d::prelude::*;
 use big_brain::prelude::*;
 
 #[derive(Component, Debug)]
@@ -49,7 +50,10 @@ pub fn move_to_blueprint_action_system(
     // Find all water sources
     blueprints: Query<(&Transform, Entity), With<Blueprint>>,
     // We use Without to make disjoint queries.
-    mut positions: Query<&mut Transform, (With<Settler>, Without<Blueprint>)>,
+    mut positions: Query<
+        (&mut Transform, &mut KinematicCharacterController),
+        (With<Settler>, Without<Blueprint>),
+    >,
     // A query on all current MoveToWaterSource actions.
     mut action_query: Query<(&Actor, &mut ActionState, &MoveToBlueprint, &ActionSpan)>,
     tilemap_query: Query<
@@ -72,7 +76,8 @@ pub fn move_to_blueprint_action_system(
             }
             ActionState::Executing => {
                 // Look up the actor's position.
-                let mut actor_position = positions.get_mut(actor.0).expect("actor has no position");
+                let (mut actor_position, mut kinematic_controller) =
+                    positions.get_mut(actor.0).expect("actor has no position");
 
                 //println!("Actor position: {:?}", actor_position.translation);
 
@@ -101,7 +106,8 @@ pub fn move_to_blueprint_action_system(
                         let step = delta.normalize() * step_size.min(distance);
 
                         // Move the actor.
-                        actor_position.translation += step;
+                        //actor_position.translation += step;
+                        kinematic_controller.translation = Some(step.truncate());
                     } else {
                         // We're within the required distance! We can declare success.
 

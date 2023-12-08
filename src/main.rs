@@ -22,24 +22,10 @@ use placement::{placement, update_cursor_pos, CursorPos};
 use rand::Rng;
 
 use bevy_ecs_tilemap::prelude::*;
+use bevy_rapier2d::prelude::*;
 use big_brain::prelude::*;
 use systems::blueprint::blueprint;
 use systems::blueprint::BlueprintFinished;
-//
-//         .add_plugins(DefaultPlugins.set(LogPlugin {
-//             // Use `RUST_LOG=big_brain=trace,thirst=trace cargo run --example thirst --features=trace` to see extra tracing output.
-//             filter: "big_brain=debug,sequence=debug".to_string(),
-//             ..default()
-//         }))
-//         .add_plugins(BigBrainPlugin::new(PreUpdate))
-//         .add_systems(Startup, init_entities)
-//         .add_systems(Update, thirst_system)
-//         .add_systems(
-//             PreUpdate,
-//             (drink_action_system, move_to_water_source_action_system).in_set(BigBrainSet::Actions),
-//         )
-//         .add_systems(First, thirsty_scorer_system)
-//         .run();
 
 fn main() {
     App::new()
@@ -47,6 +33,8 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(TilemapPlugin)
         .add_plugins(BigBrainPlugin::new(PreUpdate))
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        //.add_plugins(RapierDebugRenderPlugin::default())
         .add_systems(Startup, (setup_camera, misc_setup, tilemap_setup))
         .add_systems(Update, camera_movement)
         .add_systems(Update, update_cursor_pos)
@@ -59,7 +47,7 @@ fn main() {
             PreUpdate,
             (build_action_system, move_to_blueprint_action_system).in_set(BigBrainSet::Actions),
         )
-        .add_systems(FixedUpdate, walkie)
+        //.add_systems(FixedUpdate, walkie)
         .add_systems(FixedUpdate, animate_sprite)
         .run();
 }
@@ -106,17 +94,20 @@ fn misc_setup(
             Settler,
             BuildingNeed::new(0.5),
             thinker,
+            Collider::ball(6.0),
+            KinematicCharacterController::default(),
+            RigidBody::KinematicPositionBased,
         ));
     }
 }
 
-fn walkie(time: Res<Time>, mut sprite_position: Query<&mut Transform, With<Settler>>) {
-    let mut rng = rand::thread_rng();
-    for mut transform in &mut sprite_position {
-        transform.translation.x += rng.gen_range(-2.0..2.0) * time.delta_seconds();
-        transform.translation.y += rng.gen_range(-2.0..2.0) * time.delta_seconds();
-    }
-}
+// fn walkie(time: Res<Time>, mut sprite_position: Query<&mut Transform, With<Settler>>) {
+//     let mut rng = rand::thread_rng();
+//     for mut transform in &mut sprite_position {
+//         transform.translation.x += rng.gen_range(-2.0..2.0) * time.delta_seconds();
+//         transform.translation.y += rng.gen_range(-2.0..2.0) * time.delta_seconds();
+//     }
+// }
 
 #[derive(Component, Clone)]
 struct AnimationIndices {

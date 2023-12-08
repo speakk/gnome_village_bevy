@@ -63,11 +63,14 @@ fn misc_setup(
         TextureAtlas::from_grid(texture_handle, Vec2::new(8.0, 8.0), 4, 1, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
     let animation_indices = AnimationIndices { first: 0, last: 3 };
-    for _n in 1..100 {
+    for _n in 1..2 {
         let move_and_build = Steps::build()
             .label("MoveAndBuild")
             // ...move to the water source...
-            .step(MoveToBlueprint { speed: 60.0 })
+            .step(MoveToBlueprint {
+                speed: 60.0,
+                target: None,
+            })
             // ...and then drink.
             .step(Build { per_second: 0.2 });
 

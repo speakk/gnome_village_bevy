@@ -12,6 +12,16 @@ pub struct BuildingProcess {
 }
 
 #[derive(Clone, Component, Debug)]
-pub struct BlueprintJobTarget {
-    pub blueprint: Entity,
+pub struct JobTarget {
+    pub current_workers: usize,
+    pub max_workers: usize,
+}
+
+impl Default for JobTarget {
+    fn default() -> Self {
+        JobTarget {
+            max_workers: 3,
+            current_workers: 0,
+        }
+    }
 }

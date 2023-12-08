@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::{
-    components::{Blueprint, BuildingProcess},
+    components::{Blueprint, BuildingProcess, JobTarget},
     map::LayerBuilding,
 };
 
@@ -90,6 +90,7 @@ pub fn placement(
                         ..Default::default()
                     })
                     .insert(Blueprint)
+                    .insert(JobTarget::default())
                     .insert(BuildingProcess { process: 0.0 })
                     .insert(TransformBundle::from_transform(Transform::from_xyz(
                         final_pos.translation.x,

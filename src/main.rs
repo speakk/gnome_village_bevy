@@ -72,7 +72,10 @@ fn misc_setup(
                 target: None,
             })
             // ...and then drink.
-            .step(Build { per_second: 0.2 });
+            .step(Build {
+                per_second: 0.2,
+                target: None,
+            });
 
         // Build the thinker
         let thinker = Thinker::build()

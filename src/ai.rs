@@ -43,7 +43,7 @@ pub struct MoveToBlueprint {
 }
 
 /// Closest distance to a water source to be able to drink from it.
-const MAX_DISTANCE: f32 = 0.1;
+const MAX_DISTANCE: f32 = 12.0;
 
 pub fn move_to_blueprint_action_system(
     time: Res<Time>,
@@ -189,7 +189,8 @@ pub fn build_action_system(
                 {
                     // Find how far we are from it.
                     let (map_transform, _) = tilemap_query.iter().last().unwrap();
-                    let final_blueprint_transform = *map_transform * closest_blueprint_transform;
+                    //let final_blueprint_transform = *map_transform * closest_blueprint_transform;
+                    let final_blueprint_transform = closest_blueprint_transform;
                     let distance = (final_blueprint_transform.translation
                         - actor_position.translation)
                         .length();

@@ -4,8 +4,8 @@ use bevy_ecs_tilemap::prelude::*;
 pub const TILE_SIZE_X: f32 = 8.0;
 pub const TILE_SIZE_Y: f32 = 8.0;
 
-pub const MAP_SIZE_X: u32 = 32;
-pub const MAP_SIZE_Y: u32 = 32;
+pub const MAP_SIZE_X: u32 = 100;
+pub const MAP_SIZE_Y: u32 = 54;
 
 #[derive(Component)]
 pub struct LayerGround;

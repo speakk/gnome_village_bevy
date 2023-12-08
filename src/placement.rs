@@ -84,7 +84,7 @@ pub fn placement(
                             red: 0.5,
                             green: 0.5,
                             blue: 1.0,
-                            alpha: 0.6,
+                            alpha: 0.4,
                         }),
                         tilemap_id: *tilemap_id,
                         ..Default::default()

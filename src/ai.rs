@@ -6,12 +6,10 @@
 //! Note that it does not matter if the actor is already near a water source:
 //! the MoveToWaterSource action will simply terminate immediately.
 
-use crate::components::{Blueprint, BuildingProcess, Settler};
-use crate::map::LayerBuilding;
+use crate::components::{Blueprint, BlueprintJobTarget, BuildingProcess, Settler};
 use crate::systems::blueprint::BlueprintFinished;
 use bevy::prelude::*;
 use bevy::utils::tracing::{debug, trace};
-use bevy_ecs_tilemap::map::TilemapId;
 use bevy_rapier2d::prelude::*;
 use big_brain::prelude::*;
 
@@ -47,6 +45,7 @@ const MAX_DISTANCE: f32 = 12.0;
 
 pub fn move_to_blueprint_action_system(
     time: Res<Time>,
+    mut commands: Commands,
     // Find all water sources
     blueprints: Query<(&Transform, Entity), With<Blueprint>>,
     // We use Without to make disjoint queries.
@@ -56,8 +55,9 @@ pub fn move_to_blueprint_action_system(
     >,
     // A query on all current MoveToWaterSource actions.
     mut action_query: Query<(&Actor, &mut ActionState, &MoveToBlueprint, &ActionSpan)>,
+    blueprint_targets: Query<&BlueprintJobTarget>,
 ) {
-    println!("Blueprint length: {}", blueprints.iter().count());
+    //println!("Blueprint length: {}", blueprints.iter().count());
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (actor, mut action_state, move_to, span) in &mut action_query {
         let _guard = span.span().enter();
@@ -78,14 +78,17 @@ pub fn move_to_blueprint_action_system(
                 //println!("Actor position: {:?}", actor_position.translation);
 
                 // Look up the water source closest to them.
-                if let Some((closest_blueprint_transform, _)) =
-                    find_closest_blueprint(&blueprints, &actor_position)
+                if let Some((closest_blueprint_transform, blueprint)) =
+                    find_closest_blueprint(&blueprints, &actor_position, &blueprint_targets)
                 {
                     let final_blueprint_transform = closest_blueprint_transform;
                     // Find how far we are from it.
                     let delta = final_blueprint_transform.translation - actor_position.translation;
 
                     let distance = delta.length();
+                    commands
+                        .entity(actor.0)
+                        .insert(BlueprintJobTarget { blueprint });
 
                     //println!("Distance: {}", distance);
 
@@ -109,6 +112,8 @@ pub fn move_to_blueprint_action_system(
 
                         // The action will be cleaned up automatically.
                         *action_state = ActionState::Success;
+
+                        commands.entity(actor.0).remove::<BlueprintJobTarget>();
                     }
                 } else {
                     *action_state = ActionState::Failure;
@@ -126,16 +131,29 @@ pub fn move_to_blueprint_action_system(
     }
 }
 
+const MAX_TARGETS_PER_JOB: usize = 2;
+
 /// A utility function that finds the closest water source to the actor.
 fn find_closest_blueprint(
     blueprints: &Query<(&Transform, Entity), With<Blueprint>>,
     actor_position: &Transform,
+    blueprint_targets: &Query<&BlueprintJobTarget>,
 ) -> Option<(Transform, Entity)> {
-    let Some((transform, entity)) = blueprints.iter().min_by(|(a, _), (b, _)| {
-        let da = (a.translation - actor_position.translation).length_squared();
-        let db = (b.translation - actor_position.translation).length_squared();
-        da.partial_cmp(&db).unwrap()
-    }) else {
+    let Some((transform, entity)) = blueprints
+        .iter()
+        .min_by(|(a, _), (b, _)| {
+            let da = (a.translation - actor_position.translation).length_squared();
+            let db = (b.translation - actor_position.translation).length_squared();
+            da.partial_cmp(&db).unwrap()
+        })
+        .filter(|(_, b)| {
+            blueprint_targets
+                .iter()
+                .filter(|job_target| job_target.blueprint == *b)
+                .count()
+                <= MAX_TARGETS_PER_JOB
+        })
+    else {
         return None;
     };
 
@@ -151,14 +169,12 @@ pub struct Build {
 pub fn build_action_system(
     time: Res<Time>,
     mut building_needs: Query<&Transform, (With<Settler>, With<BuildingNeed>)>,
+    mut commands: Commands,
     blueprint_query: Query<(&Transform, Entity), With<Blueprint>>,
     mut building_processes: Query<&mut BuildingProcess, With<Blueprint>>,
     mut query: Query<(&Actor, &mut ActionState, &Build, &ActionSpan)>,
     mut blueprint_finished_event_writer: EventWriter<BlueprintFinished>,
-    tilemap_query: Query<
-        (&Transform, &TilemapId),
-        (Without<Blueprint>, Without<Settler>, With<LayerBuilding>),
-    >,
+    blueprint_targets: Query<&BlueprintJobTarget>,
 ) {
     // Loop through all actions, just like you'd loop over all entities in any other query.
     for (Actor(actor), mut state, build, span) in &mut query {
@@ -185,19 +201,20 @@ pub fn build_action_system(
                 // Essentially, being close to a water source would be a precondition for the Drink action.
                 // How this precondition was fulfilled is not this code's concern.
                 if let Some((closest_blueprint_transform, closest_blueprint_entity)) =
-                    find_closest_blueprint(&blueprint_query, actor_position)
+                    find_closest_blueprint(&blueprint_query, actor_position, &blueprint_targets)
                 {
-                    // Find how far we are from it.
-                    let (map_transform, _) = tilemap_query.iter().last().unwrap();
-                    //let final_blueprint_transform = *map_transform * closest_blueprint_transform;
                     let final_blueprint_transform = closest_blueprint_transform;
                     let distance = (final_blueprint_transform.translation
                         - actor_position.translation)
                         .length();
 
+                    commands.entity(*actor).insert(BlueprintJobTarget {
+                        blueprint: closest_blueprint_entity,
+                    });
+
                     // Are we close enough?
                     if distance < MAX_DISTANCE {
-                        println!("Building!");
+                        //println!("Building!");
 
                         // Start reducing the thirst. Alternatively, you could send out some kind of
                         // DrinkFromSource event that indirectly decreases thirst.
@@ -212,6 +229,7 @@ pub fn build_action_system(
                             blueprint_finished_event_writer
                                 .send(BlueprintFinished(closest_blueprint_entity));
                             *state = ActionState::Success;
+                            commands.entity(*actor).remove::<BlueprintJobTarget>();
                         }
                     } else {
                         // The actor was told to drink, but they can't drink when they're so far away!

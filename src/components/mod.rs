@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -13,15 +15,15 @@ pub struct BuildingProcess {
 
 #[derive(Clone, Component, Debug)]
 pub struct JobTarget {
-    pub current_workers: usize,
+    pub current_workers: HashSet<Entity>,
     pub max_workers: usize,
 }
 
 impl Default for JobTarget {
     fn default() -> Self {
         JobTarget {
-            max_workers: 3,
-            current_workers: 0,
+            max_workers: 2,
+            current_workers: HashSet::new(),
         }
     }
 }

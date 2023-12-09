@@ -13,6 +13,7 @@ use crate::components::Settler;
 use ai::build_action_system;
 use ai::building_need_system;
 use ai::building_needy_scorer_system;
+use ai::debuggi_system;
 use ai::move_to_blueprint_action_system;
 use ai::BuildingNeed;
 use bevy::prelude::*;
@@ -41,6 +42,7 @@ fn main() {
         .add_systems(Update, placement)
         .add_systems(Update, building_need_system)
         .add_systems(Update, blueprint)
+        .add_systems(Update, debuggi_system)
         .add_event::<BlueprintFinished>()
         .add_systems(First, building_needy_scorer_system)
         .add_systems(
@@ -63,7 +65,7 @@ fn misc_setup(
         TextureAtlas::from_grid(texture_handle, Vec2::new(8.0, 8.0), 4, 1, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
     let animation_indices = AnimationIndices { first: 0, last: 3 };
-    for _n in 1..2 {
+    for _n in 1..4 {
         let move_and_build = Steps::build()
             .label("MoveAndBuild")
             // ...move to the water source...
@@ -89,8 +91,8 @@ fn misc_setup(
                 texture_atlas: texture_atlas_handle.clone(),
                 sprite: TextureAtlasSprite::new(animation_indices.first),
                 transform: Transform::from_xyz(
-                    rng.gen_range(-300.0..300.0),
-                    rng.gen_range(-300.0..300.0),
+                    rng.gen_range(-100.0..100.0),
+                    rng.gen_range(-100.0..100.0),
                     0.2,
                 ),
                 ..default()
@@ -100,7 +102,7 @@ fn misc_setup(
             Settler,
             BuildingNeed::new(0.5),
             thinker,
-            Collider::ball(6.0),
+            Collider::ball(0.1),
             KinematicCharacterController::default(),
             RigidBody::KinematicPositionBased,
         ));

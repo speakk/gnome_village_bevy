@@ -57,14 +57,18 @@ pub fn move_to_blueprint_action_system(
         (With<Settler>, Without<Blueprint>),
     >,
     // A query on all current MoveToWaterSource actions.
-    mut action_query: Query<(&Actor, &mut ActionState, &mut MoveToBlueprint, &ActionSpan)>,
+    mut action_query: Query<(
+        &Actor,
+        &mut ActionState,
+        &mut MoveToBlueprint,
+        &ActionSpan,
+        Entity,
+    )>,
 ) {
     //println!("Blueprint length: {}", blueprints.iter().count());
     // Loop through all actions, just like you'd loop over all entities in any other query.
-    for (actor, mut action_state, mut move_to, span) in &mut action_query {
+    for (actor, mut action_state, mut move_to, span, actor_entity) in &mut action_query {
         let _guard = span.span().enter();
-
-        let job_target: &mut Option<&mut JobTarget> = &mut None;
 
         // Different behavior depending on action state.
         match *action_state {
@@ -80,11 +84,10 @@ pub fn move_to_blueprint_action_system(
                     find_closest_blueprint(&blueprints.to_readonly(), &actor_position)
                 {
                     *action_state = ActionState::Executing;
-                    let (_, _, mut existing_job_target) = blueprints
+                    let (_, _, mut job_target) = blueprints
                         .get_mut(blueprint)
-                        .expect("No blueprint found in blueprints");
-                    existing_job_target.current_workers += 1;
-                    *job_target = Some(&mut existing_job_target);
+                        .expect("No job target found in blueprints D");
+                    job_target.current_workers.insert(actor_entity);
                     move_to.target = Some(blueprint);
                 }
             }
@@ -129,15 +132,16 @@ pub fn move_to_blueprint_action_system(
 
                             // The action will be cleaned up automatically.
                             *action_state = ActionState::Success;
-                            if let Some(job) = job_target {
-                                job.current_workers -= 1;
-                            }
+                            let (_, _, mut job_target) = blueprints
+                                .get_mut(blueprint)
+                                .expect("No job target found in blueprints E");
+                            job_target.current_workers.remove(&actor_entity);
                             //(*job_target.expect("Job target does not exist")).current_workers -= 1;
                         }
                     } else {
                         *action_state = ActionState::Failure;
-                        if let Some(job) = job_target {
-                            job.current_workers -= 1;
+                        if let Some((_, _, mut job_target)) = blueprints.get_mut(blueprint).ok() {
+                            job_target.current_workers.remove(&actor_entity);
                         }
                     }
                 }
@@ -147,9 +151,9 @@ pub fn move_to_blueprint_action_system(
                 // You don't need to terminate immediately, by the way, this is only a flag that
                 // the cancellation has been requested. If the actor is balancing on a tightrope,
                 // for instance, you may let them walk off before ending the action.
-                if let Some(job) = job_target {
-                    job.current_workers -= 1;
-                }
+                //if let Some(job) = job_target {
+                //    job.current_workers -= 1;
+                //}
                 *action_state = ActionState::Failure;
             }
             _ => {}
@@ -169,7 +173,9 @@ fn find_closest_blueprint(
             let db = (b.translation - actor_position.translation).length_squared();
             da.partial_cmp(&db).unwrap()
         })
-        .filter(|(_, _, job_target)| job_target.current_workers < job_target.max_workers)
+        .filter(|(_, _, job_target)| {
+            job_target.current_workers.iter().count() < job_target.max_workers - 1
+        })
     else {
         return None;
     };
@@ -184,19 +190,23 @@ pub struct Build {
     pub target: Option<Entity>,
 }
 
+pub fn debuggi_system(query: Query<&JobTarget>) {
+    for job_target in query.iter() {
+        println!("Current workers: {:?}", job_target.current_workers);
+    }
+}
+
 pub fn build_action_system(
     time: Res<Time>,
     mut building_needs: Query<&Transform, (With<Settler>, With<BuildingNeed>)>,
     mut blueprint_query: Query<(&Transform, Entity, &mut JobTarget), With<Blueprint>>,
     mut building_processes: Query<&mut BuildingProcess, With<Blueprint>>,
-    mut query: Query<(&Actor, &mut ActionState, &mut Build, &ActionSpan)>,
+    mut query: Query<(&Actor, &mut ActionState, &mut Build, &ActionSpan, Entity)>,
     mut blueprint_finished_event_writer: EventWriter<BlueprintFinished>,
 ) {
     // Loop through all actions, just like you'd loop over all entities in any other query.
-    for (Actor(actor), mut state, mut build, span) in &mut query {
+    for (Actor(actor), mut state, mut build, span, actor_entity) in &mut query {
         let _guard = span.span().enter();
-
-        let job_target: &mut Option<&mut JobTarget> = &mut None;
 
         // Look up the actor's position and thirst from the Actor component in the action entity.
         let actor_position = building_needs
@@ -215,12 +225,12 @@ pub fn build_action_system(
                 if let Some((_closest_blueprint_transform, blueprint)) =
                     find_closest_blueprint(&blueprint_query.to_readonly(), &actor_position)
                 {
+                    println!("Had prequisites met and executing next");
                     *state = ActionState::Executing;
-                    let (_, _, mut existing_job_target) = blueprint_query
+                    let (_, _, mut job_target) = blueprint_query
                         .get_mut(blueprint)
                         .expect("No blueprint found in blueprints");
-                    existing_job_target.current_workers += 1;
-                    *job_target = Some(&mut existing_job_target);
+                    job_target.current_workers.insert(actor_entity);
                     build.target = Some(blueprint);
                 }
             }
@@ -234,50 +244,59 @@ pub fn build_action_system(
                 //
                 // Essentially, being close to a water source would be a precondition for the Drink action.
                 // How this precondition was fulfilled is not this code's concern.
-                if let Some((closest_blueprint_transform, closest_blueprint_entity)) =
-                    find_closest_blueprint(&blueprint_query.to_readonly(), actor_position)
-                {
-                    let final_blueprint_transform = closest_blueprint_transform;
-                    let distance = (final_blueprint_transform.translation
-                        - actor_position.translation)
-                        .length();
+                //
+                // if let Some((closest_blueprint_transform, closest_blueprint_entity)) =
+                //     find_closest_blueprint(&blueprint_query.to_readonly(), actor_position)
+                if let Some(blueprint) = build.target {
+                    if let Some((closest_blueprint_transform, _, _)) =
+                        blueprint_query.get(blueprint).ok()
+                    {
+                        let final_blueprint_transform = closest_blueprint_transform;
+                        let distance = (final_blueprint_transform.translation
+                            - actor_position.translation)
+                            .length();
 
-                    // Are we close enough?
-                    if distance < MAX_DISTANCE {
-                        //println!("Building!");
+                        // Are we close enough?
+                        if distance < MAX_DISTANCE {
+                            //println!("Building!");
 
-                        // Start reducing the thirst. Alternatively, you could send out some kind of
-                        // DrinkFromSource event that indirectly decreases thirst.
-                        //thirst.thirst -= drink.per_second * time.delta_seconds();
-                        let mut building_process = building_processes
-                            .get_mut(closest_blueprint_entity)
-                            .expect("Blueprint has no BuildingProcess");
+                            // Start reducing the thirst. Alternatively, you could send out some kind of
+                            // DrinkFromSource event that indirectly decreases thirst.
+                            //thirst.thirst -= drink.per_second * time.delta_seconds();
+                            let mut building_process = building_processes
+                                .get_mut(blueprint)
+                                .expect("Blueprint has no BuildingProcess");
 
-                        building_process.process += build.per_second * time.delta_seconds();
-                        if building_process.process >= 1.0 {
-                            building_process.process = 1.0;
-                            blueprint_finished_event_writer
-                                .send(BlueprintFinished(closest_blueprint_entity));
-                            *state = ActionState::Success;
-                            if let Some(job) = job_target {
-                                job.current_workers -= 1;
+                            building_process.process += build.per_second * time.delta_seconds();
+                            if building_process.process >= 1.0 {
+                                building_process.process = 1.0;
+                                blueprint_finished_event_writer.send(BlueprintFinished(blueprint));
+                                *state = ActionState::Success;
+                                let (_, _, mut job_target) = blueprint_query
+                                    .get_mut(blueprint)
+                                    .expect("No job target found in blueprints A");
+                                job_target.current_workers.remove(&actor_entity);
+                                //commands.entity(*actor).remove::<BlueprintJobTarget>();
                             }
-                            //commands.entity(*actor).remove::<BlueprintJobTarget>();
+                        } else {
+                            // The actor was told to drink, but they can't drink when they're so far away!
+                            // The action doesn't know how to deal with this case, it's the overarching system's
+                            // to fulfill the precondition.
+                            debug!("We're too far away!");
+                            let (_, _, mut job_target) = blueprint_query
+                                .get_mut(blueprint)
+                                .expect("No job target found in blueprints B");
+                            job_target.current_workers.remove(&actor_entity);
+                            *state = ActionState::Failure;
                         }
                     } else {
-                        // The actor was told to drink, but they can't drink when they're so far away!
-                        // The action doesn't know how to deal with this case, it's the overarching system's
-                        // to fulfill the precondition.
-                        debug!("We're too far away!");
-                        if let Some(job) = job_target {
-                            job.current_workers -= 1;
-                        }
                         *state = ActionState::Failure;
-                    }
-                } else {
-                    *state = ActionState::Failure;
-                    if let Some(job) = job_target {
-                        job.current_workers -= 1;
+                        if let Some((_, _, mut job_target)) = blueprint_query
+                            .get_mut(build.target.expect("Should have had target in query"))
+                            .ok()
+                        {
+                            job_target.current_workers.remove(&actor_entity);
+                        }
                     }
                 }
             }
@@ -285,9 +304,9 @@ pub fn build_action_system(
             // Drinking is not a complicated action, so we can just interrupt it immediately.
             ActionState::Cancelled => {
                 *state = ActionState::Failure;
-                if let Some(job) = job_target {
-                    job.current_workers -= 1;
-                }
+                // if let Some(job) = job_target {
+                //     job.current_workers -= 1;
+                // }
             }
             _ => {}
         }

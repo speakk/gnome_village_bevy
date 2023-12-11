@@ -1,0 +1,42 @@
+- tasks
+- any one task can be a sequence that needs to be completed?
+- player puts down a blueprint, task sequence is created:
+  1) bring_resources
+  2) build_blueprint
+
+- when assigning tasks, go through settlers and prioritize taking into account:
+  - distance from task
+  - filter out settlers already carrying out task
+
+
+- is there any reason to have a task-queue for a settler? Or just re-evaluate needs every time
+
+- what happens when a task is assigned to a settler?
+  - for example "bring resources" task is actually two steps, go to where resources are, then bring them to blueprint
+    - where do we break this up into
+      1) find path to resources
+      2) go to resources
+      3) find path to blueprint
+      4) put resources into target
+      - this feels like it should be handled by the AI itself? Behaviour tree?
+  - task is each job that can be split into separate parts. The "bring resources" bits don't make sense by themselves
+  - simple state machine?
+  - or big brain per task? Not much use for scoring is there?
+
+- perhaps big brain can just be always running on a settler, and basically it just has various personal needs as few different scorers, and then "work_on_tasks" as another state
+
+
+SEQUENCE EXAMPLE:
+1) User places a blueprint
+2) This creates two tasks and puts them in a sequence (one needs to be completed before the other)
+ - Bring resources to blueprint
+ - Build blueprint
+3) Task allocator finds the closest settler available for the first task
+4) Then we engage a behaviour tree on the settler that actually knows how to accomplish "Bring resources to blueprint"
+  - This means
+    1) Find path to resources
+    2) Pick resources up (add to own inventory)
+    3) Find path to blueprint
+    4) Add resources to blueprint
+    5) Signal that this task is finished
+5) While all of this is going, the settler constantly evaluates their own needs to make sure their "I'm ok working" priority is above their "I need to drink/eat/sleep" priorities

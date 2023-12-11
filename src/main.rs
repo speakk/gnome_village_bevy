@@ -1,21 +1,13 @@
-mod ai;
 mod camera;
 mod components;
 mod map;
 mod placement;
+mod plugins;
 mod systems;
 
-use crate::ai::Build;
-use crate::ai::BuildingNeedy;
-use crate::ai::MoveToBlueprint;
 use crate::camera::setup_camera;
 use crate::components::Settler;
-use ai::build_action_system;
-use ai::building_need_system;
-use ai::building_needy_scorer_system;
-use ai::debuggi_system;
-use ai::move_to_blueprint_action_system;
-use ai::BuildingNeed;
+use crate::plugins::tasks::TasksPlugin;
 use bevy::prelude::*;
 use camera::camera_movement;
 use map::tilemap_setup;
@@ -33,6 +25,7 @@ fn main() {
         .init_resource::<CursorPos>()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(TilemapPlugin)
+        .add_plugins(TasksPlugin)
         .add_plugins(BigBrainPlugin::new(PreUpdate))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         //.add_plugins(RapierDebugRenderPlugin::default())
@@ -40,15 +33,8 @@ fn main() {
         .add_systems(Update, camera_movement)
         .add_systems(Update, update_cursor_pos)
         .add_systems(Update, placement)
-        .add_systems(Update, building_need_system)
         .add_systems(Update, blueprint)
-        .add_systems(Update, debuggi_system)
         .add_event::<BlueprintFinished>()
-        .add_systems(First, building_needy_scorer_system)
-        .add_systems(
-            PreUpdate,
-            (build_action_system, move_to_blueprint_action_system).in_set(BigBrainSet::Actions),
-        )
         //.add_systems(FixedUpdate, walkie)
         .add_systems(FixedUpdate, animate_sprite)
         .run();
@@ -66,26 +52,6 @@ fn misc_setup(
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
     let animation_indices = AnimationIndices { first: 0, last: 3 };
     for _n in 1..4 {
-        let move_and_build = Steps::build()
-            .label("MoveAndBuild")
-            // ...move to the water source...
-            .step(MoveToBlueprint {
-                speed: 60.0,
-                target: None,
-            })
-            // ...and then drink.
-            .step(Build {
-                per_second: 0.2,
-                target: None,
-            });
-
-        // Build the thinker
-        let thinker = Thinker::build()
-            .label("BuildingNeedyThinker")
-            // We don't do anything unless we're thirsty enough.
-            .picker(FirstToScore { threshold: 0.4 })
-            .when(BuildingNeedy, move_and_build);
-
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
@@ -100,8 +66,6 @@ fn misc_setup(
             animation_indices.clone(),
             AnimationTimer(Timer::from_seconds(0.15, TimerMode::Repeating)),
             Settler,
-            BuildingNeed::new(0.5),
-            thinker,
             Collider::ball(0.1),
             KinematicCharacterController::default(),
             RigidBody::KinematicPositionBased,

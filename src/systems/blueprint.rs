@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
-use crate::components::{Blueprint, JobTarget};
+use crate::components::Blueprint;
 
 #[derive(Event)]
 pub struct BlueprintFinished(pub Entity);
@@ -17,6 +17,6 @@ pub fn blueprint(
             .expect("No blueprint entity transform found");
         *color = TileColor(Color::WHITE);
         commands.entity(event.0).remove::<Blueprint>();
-        commands.entity(event.0).remove::<JobTarget>();
+        //commands.entity(event.0).remove::<JobTarget>();
     }
 }
